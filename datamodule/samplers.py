@@ -3,7 +3,6 @@ from typing import Iterator, Optional
 
 import numpy as np
 import torch
-
 from fairseq.data import data_utils
 from torch.utils.data import Dataset, DistributedSampler, RandomSampler
 from torch.utils.data.sampler import Sampler

@@ -4,20 +4,23 @@
 """Transformer speech recognition model (pytorch)."""
 
 import logging
+
 import numpy
 import torch
 
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.nets_utils import (
+    MLPHead,
     make_non_pad_mask,
     th_accuracy,
 )
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
+    LabelSmoothingLoss,
+)
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
-from espnet.nets.pytorch_backend.nets_utils import MLPHead
 
 
 class E2E(torch.nn.Module):
@@ -112,11 +115,15 @@ class E2E(torch.nn.Module):
             self.ctc = None
 
     def forward(self, video, audio, video_lengths, audio_lengths, label):
-        video_padding_mask = make_non_pad_mask(video_lengths).to(video.device).unsqueeze(-2)
+        video_padding_mask = (
+            make_non_pad_mask(video_lengths).to(video.device).unsqueeze(-2)
+        )
         video_feat, _ = self.encoder(video, video_padding_mask)
 
         audio_lengths = torch.div(audio_lengths, 640, rounding_mode="trunc")
-        audio_padding_mask = make_non_pad_mask(audio_lengths).to(video.device).unsqueeze(-2)
+        audio_padding_mask = (
+            make_non_pad_mask(audio_lengths).to(video.device).unsqueeze(-2)
+        )
 
         audio_feat, _ = self.aux_encoder(audio, audio_padding_mask)
 

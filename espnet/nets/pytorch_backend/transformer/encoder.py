@@ -7,24 +7,28 @@
 """Encoder definition."""
 
 import torch
+
 from espnet.nets.pytorch_backend.backbones.conv1d_extractor import Conv1dResNet
 from espnet.nets.pytorch_backend.backbones.conv3d_extractor import Conv3dResNet
-
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
-
 from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
-)
+    MultiHeadedAttention,
+)  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.attention import (
+    RelPositionMultiHeadedAttention,
+)  # noqa: H301
 from espnet.nets.pytorch_backend.transformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,  # noqa: H301
-    RelPositionalEncoding,  # noqa: H301
-)
+    PositionalEncoding,
+)  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    RelPositionalEncoding,
+)  # noqa: H301
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
-
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+    PositionwiseFeedForward,
+)
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
@@ -101,14 +105,19 @@ class Encoder(torch.nn.Module):
 
         # -- frontend module.
         if input_layer == "conv1d":
-            self.frontend = Conv1dResNet(relu_type=relu_type, a_upsample_ratio=a_upsample_ratio)
+            self.frontend = Conv1dResNet(
+                relu_type=relu_type, a_upsample_ratio=a_upsample_ratio
+            )
         elif input_layer == "conv3d":
             self.frontend = Conv3dResNet(relu_type=relu_type)
         else:
             self.frontend = None
         # -- backend module.
         if input_layer in ["conv1d", "conv3d"]:
-            self.embed = torch.nn.Sequential(torch.nn.Linear(512, attention_dim), pos_enc_class(attention_dim, positional_dropout_rate))
+            self.embed = torch.nn.Sequential(
+                torch.nn.Linear(512, attention_dim),
+                pos_enc_class(attention_dim, positional_dropout_rate),
+            )
         else:
             raise NotImplementedError("Support only conv1d and conv3d")
 

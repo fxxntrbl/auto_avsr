@@ -4,9 +4,9 @@ import logging
 from typing import Any, Dict, List, NamedTuple, Tuple
 
 import torch
+from torch.nn.utils.rnn import pad_sequence
 
 from espnet.nets.beam_search import BeamSearch, Hypothesis
-from torch.nn.utils.rnn import pad_sequence
 
 
 class BatchHypothesis(NamedTuple):

@@ -1,11 +1,12 @@
 import os
-import hydra
 
+import hydra
 import torch
 import torchaudio
 import torchvision
-from datamodule.transforms import AudioTransform, VideoTransform
+
 from datamodule.av_dataset import cut_or_pad
+from datamodule.transforms import AudioTransform, VideoTransform
 
 
 class InferencePipeline(torch.nn.Module):
@@ -18,27 +19,27 @@ class InferencePipeline(torch.nn.Module):
             if detector == "mediapipe":
                 from preparation.detectors.mediapipe.detector import LandmarksDetector
                 from preparation.detectors.mediapipe.video_process import VideoProcess
+
                 self.landmarks_detector = LandmarksDetector()
                 self.video_process = VideoProcess(convert_gray=False)
-            elif detector == "retinaface":
-                from preparation.detectors.retinaface.detector import LandmarksDetector
-                from preparation.detectors.retinaface.video_process import VideoProcess
-                self.landmarks_detector = LandmarksDetector(device="cuda:0")
-                self.video_process = VideoProcess(convert_gray=False)
+
             self.video_transform = VideoTransform(subset="test")
 
-        if cfg.data.modality in ["audio", "visual"]:
-            from lightning import ModelModule
-        elif cfg.data.modality == "audiovisual":
+        if cfg.data.modality == "audiovisual":
             from lightning_av import ModelModule
         self.modelmodule = ModelModule(cfg)
-        self.modelmodule.model.load_state_dict(torch.load(cfg.pretrained_model_path, map_location=lambda storage, loc: storage))
+        self.modelmodule.model.load_state_dict(
+            torch.load(
+                cfg.pretrained_model_path, map_location=lambda storage, loc: storage
+            )
+        )
         self.modelmodule.eval()
-
 
     def forward(self, data_filename):
         data_filename = os.path.abspath(data_filename)
-        assert os.path.isfile(data_filename), f"data_filename: {data_filename} does not exist."
+        assert os.path.isfile(
+            data_filename
+        ), f"data_filename: {data_filename} does not exist."
 
         if self.modality in ["audio", "audiovisual"]:
             audio, sample_rate = self.load_audio(data_filename)
@@ -63,13 +64,17 @@ class InferencePipeline(torch.nn.Module):
 
         elif self.modality == "audiovisual":
             print(len(audio), len(video))
-            assert 530 < len(audio) // len(video) < 670, "The video frame rate should be between 24 and 30 fps."
+            assert (
+                530 < len(audio) // len(video) < 670
+            ), "The video frame rate should be between 24 and 30 fps."
 
             rate_ratio = len(audio) // len(video)
             if rate_ratio == 640:
                 pass
             else:
-                print(f"The ideal video frame rate is set to 25 fps, but the current frame rate ratio, calculated as {len(video)*16000/len(audio):.1f}, which may affect the performance.")
+                print(
+                    f"The ideal video frame rate is set to 25 fps, but the current frame rate ratio, calculated as {len(video)*16000/len(audio):.1f}, which may affect the performance."
+                )
                 audio = cut_or_pad(audio, len(video) * 640)
             with torch.no_grad():
                 transcript = self.modelmodule(video, audio)
