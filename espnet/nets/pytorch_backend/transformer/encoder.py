@@ -12,15 +12,19 @@ from espnet.nets.pytorch_backend.backbones.conv1d_extractor import Conv1dResNet
 from espnet.nets.pytorch_backend.backbones.conv3d_extractor import Conv3dResNet
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
 from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
-    MultiHeadedAttention, RelPositionMultiHeadedAttention)
-from espnet.nets.pytorch_backend.transformer.convolution import \
-    ConvolutionModule
+    MultiHeadedAttention,
+    RelPositionMultiHeadedAttention,
+)
+from espnet.nets.pytorch_backend.transformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
-    PositionalEncoding, RelPositionalEncoding)
+    PositionalEncoding,
+    RelPositionalEncoding,
+)
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import \
-    PositionwiseFeedForward
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+    PositionwiseFeedForward,
+)
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 

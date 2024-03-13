@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - model: default
+  - model: resnet_conformer
   - override hydra/hydra_logging: disabled
   - override hydra/job_logging: disabled
 hydra:
@@ -11,7 +11,7 @@ exp_dir:
 exp_name:
 gpus:
 slurm_job_id:
-demo:
+filename:
 ckpt_path:
 pretrained_model_path:
 transfer_frontend:

@@ -5,6 +5,7 @@
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import os
+import pathlib
 import random
 
 import sentencepiece
@@ -17,18 +18,34 @@ NOISE_FILENAME = os.path.join(
 )
 
 SP_MODEL_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    os.path.dirname(os.path.dirname(pathlib.Path(__file__).parent.absolute())),
+    "models",
     "spm",
     "unigram",
     "unigram5000.model",
 )
 
 DICT_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    os.path.dirname(os.path.dirname(pathlib.Path(__file__).parent.absolute())),
+    "models",
     "spm",
     "unigram",
     "unigram5000_units.txt",
 )
+
+
+def cut_or_pad(data, size, dim=0):
+    """
+    Pads or trims the data along a dimension.
+    """
+    if data.size(dim) < size:
+        padding = size - data.size(dim)
+        data = torch.nn.functional.pad(data, (0, 0, 0, padding), "constant")
+        size = data.size(dim)
+    elif data.size(dim) > size:
+        data = data[:size]
+    assert data.size(dim) == size
+    return data
 
 
 class FunctionalModule(torch.nn.Module):
@@ -121,9 +138,11 @@ class AudioTransform:
             )
         elif subset == "val" or subset == "test":
             self.audio_pipeline = torch.nn.Sequential(
-                AddNoise(snr_target=snr_target)
-                if snr_target is not None
-                else FunctionalModule(lambda x: x),
+                (
+                    AddNoise(snr_target=snr_target)
+                    if snr_target is not None
+                    else FunctionalModule(lambda x: x)
+                ),
                 FunctionalModule(
                     lambda x: torch.nn.functional.layer_norm(x, x.shape, eps=1e-8)
                 ),
@@ -143,7 +162,6 @@ class TextTransform:
         sp_model_path=SP_MODEL_PATH,
         dict_path=DICT_PATH,
     ):
-
         # Load SentencePiece model
         self.spm = sentencepiece.SentencePieceProcessor(model_file=sp_model_path)
 

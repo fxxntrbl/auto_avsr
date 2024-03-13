@@ -29,7 +29,7 @@ class ModelModule(LightningModule):
 
         # -- initialise
         ckpt = torch.load(
-            "model/audiovisual.pth",
+            "models/audiovisual/model.pth",
             map_location=lambda storage, loc: storage,
         )
         if self.cfg.transfer_frontend:

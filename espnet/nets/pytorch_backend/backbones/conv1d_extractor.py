@@ -6,7 +6,9 @@
 import torch
 
 from espnet.nets.pytorch_backend.backbones.modules.resnet1d import (
-    BasicBlock1D, ResNet1D)
+    BasicBlock1D,
+    ResNet1D,
+)
 
 
 class Conv1dResNet(torch.nn.Module):
