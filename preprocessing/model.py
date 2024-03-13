@@ -2,11 +2,12 @@ import torch
 import torchaudio
 from pytorch_lightning import LightningModule
 
-from datamodule.transforms import TextTransform
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.pytorch_backend.e2e_asr_conformer_av import E2E
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
+
+from .data import TextTransform
 
 
 def compute_word_level_distance(seq1, seq2):
@@ -27,27 +28,26 @@ class ModelModule(LightningModule):
         self.model = E2E(len(self.token_list), self.backbone_args)
 
         # -- initialise
-        if self.cfg.pretrained_model_path:
-            ckpt = torch.load(
-                self.cfg.pretrained_model_path,
-                map_location=lambda storage, loc: storage,
-            )
-            if self.cfg.transfer_frontend:
-                tmp_ckpt = {
-                    k: v
-                    for k, v in ckpt["model_state_dict"].items()
-                    if k.startswith("trunk.") or k.startswith("frontend3D.")
-                }
-                self.model.encoder.frontend.load_state_dict(tmp_ckpt)
-            elif self.cfg.transfer_encoder:
-                tmp_ckpt = {
-                    k.replace("encoder.", ""): v
-                    for k, v in ckpt.items()
-                    if k.startswith("encoder.")
-                }
-                self.model.encoder.load_state_dict(tmp_ckpt, strict=True)
-            else:
-                self.model.load_state_dict(ckpt)
+        ckpt = torch.load(
+            "model/audiovisual.pth",
+            map_location=lambda storage, loc: storage,
+        )
+        if self.cfg.transfer_frontend:
+            tmp_ckpt = {
+                k: v
+                for k, v in ckpt["model_state_dict"].items()
+                if k.startswith("trunk.") or k.startswith("frontend3D.")
+            }
+            self.model.encoder.frontend.load_state_dict(tmp_ckpt)
+        elif self.cfg.transfer_encoder:
+            tmp_ckpt = {
+                k.replace("encoder.", ""): v
+                for k, v in ckpt.items()
+                if k.startswith("encoder.")
+            }
+            self.model.encoder.load_state_dict(tmp_ckpt, strict=True)
+        else:
+            self.model.load_state_dict(ckpt)
 
     def forward(self, video, audio):
         self.beam_search = get_beam_search_decoder(self.model, self.token_list)

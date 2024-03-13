@@ -5,11 +5,9 @@ import torch
 import torchaudio
 import torchvision
 
-from datamodule.av_dataset import cut_or_pad
-from datamodule.transforms import AudioTransform, VideoTransform
-from lightning_av import ModelModule
-from preparation.detectors.detector import LandmarksDetector
-from preparation.detectors.video_process import VideoProcess
+from preprocessing import ModelModule
+from preprocessing.data import AudioTransform, VideoTransform, cut_or_pad
+from preprocessing.detector import LandmarksDetector, VideoProcess
 
 
 class InferencePipeline(torch.nn.Module):
@@ -26,7 +24,7 @@ class InferencePipeline(torch.nn.Module):
         self.modelmodule = ModelModule(cfg)
         self.modelmodule.model.load_state_dict(
             torch.load(
-                cfg.pretrained_model_path, map_location=lambda storage, loc: storage
+                "model/audiovisual.pth", map_location=lambda storage, loc: storage
             )
         )
         self.modelmodule.eval()
