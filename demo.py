@@ -7,26 +7,22 @@ import torchvision
 
 from datamodule.av_dataset import cut_or_pad
 from datamodule.transforms import AudioTransform, VideoTransform
+from lightning_av import ModelModule
+from preparation.detectors.detector import LandmarksDetector
+from preparation.detectors.video_process import VideoProcess
 
 
 class InferencePipeline(torch.nn.Module):
-    def __init__(self, cfg, detector="retinaface"):
+    def __init__(self, cfg):
         super(InferencePipeline, self).__init__()
-        self.modality = cfg.data.modality
-        if self.modality in ["audio", "audiovisual"]:
-            self.audio_transform = AudioTransform(subset="test")
-        if self.modality in ["video", "audiovisual"]:
-            if detector == "mediapipe":
-                from preparation.detectors.mediapipe.detector import LandmarksDetector
-                from preparation.detectors.mediapipe.video_process import VideoProcess
+        self.modality = cfg.modality
+        self.audio_transform = AudioTransform(subset="test")
 
-                self.landmarks_detector = LandmarksDetector()
-                self.video_process = VideoProcess(convert_gray=False)
+        self.landmarks_detector = LandmarksDetector()
+        self.video_process = VideoProcess(convert_gray=False)
 
-            self.video_transform = VideoTransform(subset="test")
+        self.video_transform = VideoTransform(subset="test")
 
-        if cfg.data.modality == "audiovisual":
-            from lightning_av import ModelModule
         self.modelmodule = ModelModule(cfg)
         self.modelmodule.model.load_state_dict(
             torch.load(
@@ -55,14 +51,7 @@ class InferencePipeline(torch.nn.Module):
             video = video.permute((0, 3, 1, 2))
             video = self.video_transform(video)
 
-        if self.modality == "video":
-            with torch.no_grad():
-                transcript = self.modelmodule(video)
-        elif self.modality == "audio":
-            with torch.no_grad():
-                transcript = self.modelmodule(audio)
-
-        elif self.modality == "audiovisual":
+        if self.modality == "audiovisual":
             print(len(audio), len(video))
             assert (
                 530 < len(audio) // len(video) < 670
@@ -97,10 +86,10 @@ class InferencePipeline(torch.nn.Module):
         return waveform
 
 
-@hydra.main(version_base="1.3", config_path="configs", config_name="config")
+@hydra.main(version_base="1.3", config_path="configs", config_name="hydra")
 def main(cfg):
     pipeline = InferencePipeline(cfg)
-    transcript = pipeline(cfg.file_path)
+    transcript = pipeline(cfg.demo)
     print(f"transcript: {transcript}")
 
 
