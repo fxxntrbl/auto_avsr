@@ -1,19 +1,12 @@
 import torch
-import torchaudio
 from pytorch_lightning import LightningModule
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.pytorch_backend.e2e_asr_conformer_av import E2E
-from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet.nets.pytorch_backend.e2e_asr_conformer import E2E
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 from .data import TextTransform
-
-
-def compute_word_level_distance(seq1, seq2):
-    return torchaudio.functional.edit_distance(
-        seq1.lower().split(), seq2.lower().split()
-    )
 
 
 class ModelModule(LightningModule):
@@ -29,7 +22,7 @@ class ModelModule(LightningModule):
 
         # -- initialise
         ckpt = torch.load(
-            "models/audiovisual/model.pth",
+            "models/visual/model.pth",
             map_location=lambda storage, loc: storage,
         )
         if self.cfg.transfer_frontend:
@@ -49,17 +42,12 @@ class ModelModule(LightningModule):
         else:
             self.model.load_state_dict(ckpt)
 
-    def forward(self, video, audio):
+    def forward(self, sample):
         self.beam_search = get_beam_search_decoder(self.model, self.token_list)
-        video_feat, _ = self.model.encoder(video.unsqueeze(0).to(self.device), None)
-        audio_feat, _ = self.model.aux_encoder(audio.unsqueeze(0).to(self.device), None)
-        audiovisual_feat = self.model.fusion(
-            torch.cat((video_feat, audio_feat), dim=-1)
-        )
+        enc_feat, _ = self.model.encoder(sample.unsqueeze(0).to(self.device), None)
+        enc_feat = enc_feat.squeeze(0)
 
-        audiovisual_feat = audiovisual_feat.squeeze(0)
-
-        nbest_hyps = self.beam_search(audiovisual_feat)
+        nbest_hyps = self.beam_search(enc_feat)
         nbest_hyps = [h.asdict() for h in nbest_hyps[: min(len(nbest_hyps), 1)]]
         predicted_token_id = torch.tensor(list(map(int, nbest_hyps[0]["yseq"][1:])))
         predicted = self.text_transform.post_process(predicted_token_id).replace(

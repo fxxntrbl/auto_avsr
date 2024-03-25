@@ -10,12 +10,8 @@ import random
 
 import sentencepiece
 import torch
-import torchaudio
 import torchvision
 
-NOISE_FILENAME = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "babble_noise.wav"
-)
 
 SP_MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(pathlib.Path(__file__).parent.absolute())),
@@ -32,20 +28,6 @@ DICT_PATH = os.path.join(
     "unigram",
     "unigram5000_units.txt",
 )
-
-
-def cut_or_pad(data, size, dim=0):
-    """
-    Pads or trims the data along a dimension.
-    """
-    if data.size(dim) < size:
-        padding = size - data.size(dim)
-        data = torch.nn.functional.pad(data, (0, 0, 0, padding), "constant")
-        size = data.size(dim)
-    elif data.size(dim) > size:
-        data = data[:size]
-    assert data.size(dim) == size
-    return data
 
 
 class FunctionalModule(torch.nn.Module):
@@ -80,28 +62,6 @@ class AdaptiveTimeMask(torch.nn.Module):
         return cloned
 
 
-class AddNoise(torch.nn.Module):
-    def __init__(
-        self,
-        noise_filename=NOISE_FILENAME,
-        snr_target=None,
-    ):
-        super().__init__()
-        self.snr_levels = [snr_target] if snr_target else [-5, 0, 5, 10, 15, 20, 999999]
-        self.noise, sample_rate = torchaudio.load(noise_filename)
-        assert sample_rate == 16000
-
-    def forward(self, speech):
-        # speech: T x 1
-        # return: T x 1
-        speech = speech.t()
-        start_idx = random.randint(0, self.noise.shape[1] - speech.shape[1])
-        noise_segment = self.noise[:, start_idx : start_idx + speech.shape[1]]
-        snr_level = torch.tensor([random.choice(self.snr_levels)])
-        noisy_speech = torchaudio.functional.add_noise(speech, noise_segment, snr_level)
-        return noisy_speech.t()
-
-
 class VideoTransform:
     def __init__(self, subset):
         if subset == "train":
@@ -124,34 +84,6 @@ class VideoTransform:
         # sample: T x C x H x W
         # rtype: T x 1 x H x W
         return self.video_pipeline(sample)
-
-
-class AudioTransform:
-    def __init__(self, subset, snr_target=None):
-        if subset == "train":
-            self.audio_pipeline = torch.nn.Sequential(
-                AdaptiveTimeMask(6400, 16000),
-                AddNoise(),
-                FunctionalModule(
-                    lambda x: torch.nn.functional.layer_norm(x, x.shape, eps=1e-8)
-                ),
-            )
-        elif subset == "val" or subset == "test":
-            self.audio_pipeline = torch.nn.Sequential(
-                (
-                    AddNoise(snr_target=snr_target)
-                    if snr_target is not None
-                    else FunctionalModule(lambda x: x)
-                ),
-                FunctionalModule(
-                    lambda x: torch.nn.functional.layer_norm(x, x.shape, eps=1e-8)
-                ),
-            )
-
-    def __call__(self, sample):
-        # sample: T x 1
-        # rtype: T x 1
-        return self.audio_pipeline(sample)
 
 
 class TextTransform:
